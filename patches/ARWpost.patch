@@ -1,0 +1,526 @@
+diff -uprN src/Makefile src.new/Makefile
+--- src/Makefile	2016-12-21 22:29:43.474262507 +0000
++++ src.new/Makefile	2016-12-21 22:33:03.254470621 +0000
+@@ -1,7 +1,7 @@
+ 
+ include ../configure.arwp
+ 
+-OBJS = module_model_basics.o constants_module.o gridinfo_module.o ARWpost.o input_module.o output_module.o module_map_utils.o misc_definitions_module.o module_date_pack.o module_debug.o process_domain_module.o module_get_file_names.o module_interp.o module_basic_arrays.o module_diagnostics.o module_arrays.o module_pressure.o module_calc_height.o module_calc_pressure.o module_calc_theta.o module_calc_tk.o module_calc_tc.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o
++OBJS = module_model_basics.o constants_module.o gridinfo_module.o ARWpost.o input_module.o output_module.o module_map_utils.o misc_definitions_module.o module_date_pack.o module_debug.o process_domain_module.o module_get_file_names.o module_interp.o module_basic_arrays.o module_diagnostics.o module_arrays.o module_pressure.o module_calc_height.o module_calc_pressure.o module_calc_theta.o module_calc_tk.o module_calc_tc.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o module_calc_myrh.o module_calc_ept.o module_ept_bolton80.o
+ 
+ 
+ wrong: 
+@@ -16,7 +16,7 @@ all: ARWpost.exe
+ 
+ ARWpost.exe: $(OBJS)
+ 	$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $(OBJS)  \
+-		-L$(NETCDF)/lib -I$(NETCDF)/include  -lnetcdf 
++		-L$(NETCDF)/lib -I$(NETCDF)/include  -lnetcdff -lnetcdf 
+ 
+ 
+ module_model_basics.o:
+@@ -52,7 +52,7 @@ ARWpost.o: gridinfo_module.o module_debu
+ 
+ module_basic_arrays.o: gridinfo_module.o module_arrays.o module_pressure.o module_interp.o constants_module.o
+ 
+-module_diagnostics.o: gridinfo_module.o output_module.o module_arrays.o module_interp.o module_pressure.o constants_module.o module_calc_height.o module_calc_pressure.o module_calc_tk.o module_calc_tc.o module_calc_theta.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o
++module_diagnostics.o: gridinfo_module.o output_module.o module_arrays.o module_interp.o module_pressure.o constants_module.o module_calc_height.o module_calc_pressure.o module_calc_tk.o module_calc_tc.o module_calc_theta.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o module_calc_myrh.o module_calc_ept.o
+ 
+ module_calc_cape.o: module_model_basics.o constants_module.o
+ module_calc_dbz.o: module_model_basics.o constants_module.o
+@@ -70,6 +70,7 @@ module_calc_uvmet.o: module_model_basics
+ module_calc_wdir.o: module_model_basics.o
+ module_calc_wspd.o: module_model_basics.o
+ module_calc_clfr.o: module_model_basics.o
++module_calc_ept.o: module_model_basics.o constants_module.o module_ept_bolton80.o
+ 
+ clean:
+ 	rm -f $(OBJS) *.mod
+diff -uprN src/module_arrays.f90 src.new/module_arrays.f90
+--- src/module_arrays.f90	2016-12-21 22:29:43.474262507 +0000
++++ src.new/module_arrays.f90	2016-12-21 22:54:41.355853187 +0000
+@@ -207,4 +207,16 @@ MODULE module_arrays
+   
+   END SUBROUTINE keep_arrays
+ 
++  subroutine rain_rate_arrays
++    USE module_model_basics
++    allocate(RAINNC_NOW(west_east_dim,south_north_dim,1), &
++         &            RAINNC_OLD(west_east_dim,south_north_dim,1), &
++         &             RAINC_NOW(west_east_dim,south_north_dim,1), &
++         &             RAINC_OLD(west_east_dim,south_north_dim,1))
++    RAINNC_NOW=0.
++    RAINC_NOW=0.
++    RAINNC_OLD=0.
++    RAINC_OLD=0.
++  
++  end subroutine rain_rate_arrays
+ END MODULE module_arrays
+diff -uprN src/module_calc_ept.f90 src.new/module_calc_ept.f90
+--- src/module_calc_ept.f90	1970-01-01 00:00:00.000000000 +0000
++++ src.new/module_calc_ept.f90	2016-12-21 22:58:55.368769650 +0000
+@@ -0,0 +1,46 @@
++  !! Diagnostics: Equivalent Potential Temperature
++  !
++  ! Thu Nov  1 09:35:01 JST 2012
++  ! aofd30
++  ! am
++  ! /work1/am/WRF/MyARWpost/src
++  !
++
++MODULE module_calc_ept  !EPT
++
++CONTAINS
++  SUBROUTINE calc_ept(SCR, cname, cdesc, cunits)
++
++    USE module_model_basics
++
++    use ept_bolton80
++
++
++    !Arguments
++    real, allocatable, dimension(:,:,:) :: SCR
++    character (len=128) :: cname, cdesc, cunits
++
++    !Local
++    real, dimension(&
++         &west_east_dim,south_north_dim,bottom_top_dim) :: tmp
++
++
++    do k=1,bottom_top_dim
++       do j=1,south_north_dim
++          do i=1,west_east_dim
++
++             PhPa=PRES(i,j,k)/100.
++             r=QV(i,j,k)*1000.0
++             call ept_B80(SCR(i,j,k), TK(i,j,k), PhPa, r)
++
++          enddo !i
++       enddo !j
++    enddo !k
++
++    cname    = "ept"
++    cdesc    = "Equivalent Potential Temperature"
++    cunits   = "K"
++
++  END SUBROUTINE calc_ept
++
++END MODULE module_calc_ept
+diff -uprN src/module_calc_myrh.f90 src.new/module_calc_myrh.f90
+--- src/module_calc_myrh.f90	1970-01-01 00:00:00.000000000 +0000
++++ src.new/module_calc_myrh.f90	2016-12-21 22:41:14.946520757 +0000
+@@ -0,0 +1,43 @@
++module module_calc_myrh
++  ! Description:
++  !
++  ! Author: am
++  !
++  ! https://sites.google.com/site/afcwrf/home/a/arwpost/ept
++  !
++
++  !  use
++  !  implicit none
++
++  !  write(*,'(a)')'Module: module_calc_myrh'
++  !  write(*,*)''
++
++CONTAINS
++  SUBROUTINE calc_myrh(SCR, cname, cdesc, cunits)
++
++    USE constants_module
++    USE module_model_basics
++
++    !Arguments
++    real, allocatable, dimension(:,:,:) :: SCR
++    character (len=128) :: cname, cdesc, cunits
++
++    !Local
++    real, dimension(west_east_dim,south_north_dim,bottom_top_dim) &
++         & :: tmp1, tmp2
++
++
++    tmp1     = 10.*0.6112*exp(17.67*(TK-T0)/(TK-29.65))
++    tmp2     = EPS*tmp1/(0.01 * PRES -  (1.-EPS)*tmp1)
++    tmp1     = 100.*AMAX1(AMIN1(QV/tmp2,1.0),0.0)
++
++    SCR      = tmp1
++    cname    = "myrh"
++    cdesc    = "My Relative Humidity"
++    cunits   = "%"
++
++  END SUBROUTINE calc_myrh
++
++  !  write(*,'(a)')'Done module module_calc_myrh.'
++  !  write(*,*)
++end module module_calc_myrh
+diff -uprN src/module_diagnostics.f90 src.new/module_diagnostics.f90
+--- src/module_diagnostics.f90	2016-12-21 22:29:43.474262507 +0000
++++ src.new/module_diagnostics.f90	2016-12-21 22:35:32.116181442 +0000
+@@ -26,7 +26,9 @@ MODULE module_diagnostics
+   USE module_calc_dbz
+   USE module_calc_cape
+   USE module_calc_clfr
+-
++  USE module_calc_myrh
++  USE module_calc_ept
++  
+   CONTAINS
+ 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+@@ -49,6 +51,20 @@ MODULE module_diagnostics
+       integer                                :: local_time
+ 
+ 
++!!! Equivalent Potential Temperature
++      IF ( INDEX(plot_these_fields,",ept,") /= 0 ) THEN  !EPT
++         IF ( have_PRES ) THEN
++            IF ( ALLOCATED(SCR) ) DEALLOCATE(SCR)
++            ALLOCATE(SCR(west_east_dim,south_north_dim,bottom_top_dim))
++            CALL calc_ept(SCR, cname, cdesc, cunits)  !EPT
++            CALL interp (SCR, west_east_dim, south_north_dim, bottom_top_dim, &
++                 data_out, nxout, nyout, nzout, &
++                 vert_array, interp_levels, number_of_zlevs,cname)
++            CALL write_dat (data_out, nxout, nyout, nzout, cname, cdesc, cunits)
++            DEALLOCATE(SCR)
++         END IF
++      END IF
++      
+ 
+ !!! Calculate pressure in hPA
+         IF ( INDEX(plot_these_fields,",pressure,") /= 0 ) THEN
+@@ -173,6 +189,20 @@ MODULE module_diagnostics
+         END IF
+ 
+ 
++!!! myrh
++        IF ( INDEX(plot_these_fields,",myrh,")   /= 0 ) THEN
++           IF ( ALLOCATED(SCR) ) DEALLOCATE(SCR)
++           ALLOCATE(SCR(west_east_dim,south_north_dim,bottom_top_dim))
++           CALL calc_myrh(SCR, cname, cdesc, cunits)
++           IF ( INDEX(plot_these_fields,",myrh,")   /= 0 ) THEN
++              CALL interp (SCR, west_east_dim, south_north_dim, bottom_top_dim, &
++                   data_out, nxout, nyout, nzout, &
++                   vert_array, interp_levels, number_of_zlevs,cname)
++              CALL write_dat (data_out, nxout, nyout, nzout, cname, cdesc, cunits)
++           END IF
++           DEALLOCATE(SCR)
++        END IF
++
+ !!! Relative Humidity    
+         IF ( INDEX(plot_these_fields,",rh,")   /= 0 .OR. &
+              INDEX(plot_these_fields,",clfr,") /= 0 ) THEN
+diff -uprN src/module_ept_bolton80.f90 src.new/module_ept_bolton80.f90
+--- src/module_ept_bolton80.f90	1970-01-01 00:00:00.000000000 +0000
++++ src.new/module_ept_bolton80.f90	2016-12-21 22:40:10.800652588 +0000
+@@ -0,0 +1,155 @@
++module ept_bolton80 !EPT
++contains
++
++  ! Description:
++  !
++  ! Author: am
++  !
++  ! https://sites.google.com/site/afcwrf/home/a/arwpost/ept
++  !
++  ! References:
++  ! Bolton, D., 1980: The computation of equivalent potential
++  !   Temperature, Monthly Weather Review, 108, 1046-1053.
++  !  url: http://www.rsmas.miami.edu/users/pzuidema/Bolton.pdf
++  !
++  !  "The most accurate formula to data is from Bolton (1980).
++  !  It computes EPT to accuracy, relative to numerical
++  !  solutions of the governing equation, better than 0.02 K."
++  !                                     Davies-Jones (MWR, 2009)
++  !
++  ! 汎用気象サブルーチン @ Shimizus
++  ! http://shimizus.hustle.ne.jp/wiki/wiki.cgi?page=%C8%C6%CD%D1%B5%A4%BE%DD%A5%B5%A5%D6%A5%EB%A1%BC%A5%C1%A5%F3
++  !
++  !
++  ! NOTE: If both u (relative humidity) and td (dew point) are
++  !       specified, this program uses td.
++  !
++  subroutine ept_b80(ept, tk, p, r_in, u_in, td_in) !EPT
++    !
++    !  use
++    implicit none
++
++    real,intent(out)::ept
++    ! ept: equivalent potential temperature (kelvin)
++
++    real,intent(in)::tk,p,r_in
++    real,optional,intent(in):: u_in, td_in
++    ! tk: absolute temperature (kelvin)
++    ! p : pressure (hPa)
++    ! r_in : water-vapor mixing ratio (g/kg)
++    ! u_in : relative humidity (%)
++    ! td_in: dewpoint (kelvin)
++
++    real r,u,td
++    ! r : water-vapor mixing ratio (g/kg)
++    ! u : relative humidity (%)
++    ! td: dewpoint (kelvin)
++
++    real,parameter::p0=1000.0
++    ! p0: pressue (hPa)
++
++    ! Shimizus
++    real,parameter::L=2.5*1.e6
++    real,parameter::Rv=461.0
++    ! L : latent heat
++    ! Rv: gas constant
++    ! Shimizus
++
++    real tl, e
++    ! tl: Absolute temperature at lifting condensation level (LCL)
++    !     (kelvin)
++    !  e: water vapor pressure (hPa)
++
++    real pt
++    ! pt : potential temparature
++    real pow,arg1,arg2,exp1, denom
++    real A, es
++    real numer, C !
++
++    !  write(*,'(a)')'Subroutine: ept_bolton80'
++    !  write(*,*)''
++
++
++    !  print *,tk
++    !  print *,p
++    !  print *,r
++
++    !  print *,'present(u_in)=',present(u_in)
++    !  print *,'present(td_in)=',present(td_in)
++
++    ! Absolute temperature at lifting condensation level (LCL)
++    if ((present(u_in) .eqv. .false.) .and. (present(td_in) .eqv. .false.))then
++       r=r_in
++       e = p*r/(622.0 + r)
++       tl = 2840.0/(3.5*log(tk) - log(e) - 4.805) + 55.0
++       !    print *,'Using r'
++       !    print *,"e=",e
++       !    print *,"tl=",tl
++    else if ((present(u_in) .eqv. .false.) .and. (present(td_in) .eqv. .true.))then
++       !    print *,'Using td'
++       td=td_in
++       denom=1.0/(td - 56.0) + log(tk/td)/800.0
++       tl = 1.0/denom + 56.0
++       !   Shimizus
++       A = (td- 273.2)/(273.2*td)
++       e = 6.11*exp(A*L/Rv)
++       r = (0.622 * e/ (P - e))*1.E3 ! mixing ratio g/kg
++       !   Shimizus
++
++       !    print *,"tl=",tl
++       !    print *,"r = ",r
++    else if ((present(u_in) .eqv. .true.) .and. (present(td_in) .eqv. .false.))then
++       !    print *,'Using u'
++       u=u_in
++       denom=1.0/(tk - 55.0) - log(u/100.0)/2840.0
++       tl = 1.0/denom + 55.0
++
++       !   Shimizus
++       A = (tk- 273.2)/(273.2*tk)
++       es = 6.11*exp(A*L/Rv)
++       e = u * es * 0.01
++       r = (0.622 * e/ (p - e))*1.E3 ! mixing ratio g/kg
++       !   Shimizus
++
++       !    print *,"tl=",tl
++    else
++       !   NB: If both u and td are specified, the program uses td
++       !    print *,'Using td'
++       denom=1.0/(td - 56.0) + log(tk/td)/800.0
++       tl = 1.0/denom + 56.0
++       !   Shimizus
++       A = (td- 273.2)/(273.2*td)
++       e = 6.11*exp(A*L/Rv)
++       r = (0.622 * e/ (P - e))*1.E3 ! mixing ratio g/kg
++       !   Shimizus
++       !    print *,"tl=",tl
++    endif
++
++
++    pow=0.2854*(1.0 - 0.28*0.001*r)
++
++    ! Eq.(43) of B80.
++    arg1 = 3.376/tl - 0.00254
++    arg2 = r*(1.0 + 0.81 * 1.0E-3*r)
++
++    exp1=exp( arg1 * arg2 )
++
++    pt=tk*(p0/p)**pow
++    !  print *,'pt = ',pt
++
++    ept=tk*(p0/p)**pow * exp1
++
++
++    ! Eq. (6.3) of Davies-Jones (MWR, 2009)
++    !  numer = (2.771*1.E6 - 1109.0*(tl - 273.15))*r*1.E-3
++    !  denom = 1005.7*tl
++    !  ept=pt*exp(numer/denom)
++
++
++    ! Eq. (2.5) of Davies-Jones (MWR, 2009)
++    ! ept = pt*exp((2.690*1.E6 * 1.0E-3 * r)/(1005.7*tl) )
++    !  write(*,'(a)')'Done subroutine ept_b80.'
++    !  write(*,*)
++  end subroutine ept_b80
++end module ept_bolton80
++
+diff -uprN src/module_model_basics.f90 src.new/module_model_basics.f90
+--- src/module_model_basics.f90	2016-12-21 22:29:43.474262507 +0000
++++ src.new/module_model_basics.f90	2016-12-21 22:53:28.592334887 +0000
+@@ -21,7 +21,8 @@ MODULE module_model_basics
+    real, allocatable, dimension(:,:,:)  :: P, PB, PH, PHB, PRES, GEOPT  !! PRES is pressure in Pa
+    real, allocatable, dimension(:,:,:)  :: UUU, VVV, T, TK              !! TK is temp in K, T is theta-300
+    real, allocatable, dimension(:,:,:)  :: QV, QR, QS, QG
+-
++   real, allocatable, dimension(:,:,:)  :: RAINNC_NOW, RAINC_NOW, RAINNC_OLD, RAINC_OLD
++   
+    logical                              :: have_PTOP
+    logical                              :: have_ZNU, have_ZNW
+    logical                              :: have_XLAT, have_XLONG, have_HGT
+diff -uprN src/module_module_calc_ept.f90 src.new/module_module_calc_ept.f90
+--- src/module_module_calc_ept.f90	1970-01-01 00:00:00.000000000 +0000
++++ src.new/module_module_calc_ept.f90	2016-12-21 22:36:48.348586028 +0000
+@@ -0,0 +1,43 @@
++  !! Diagnostics: Equivalent Potential Temperature
++  !
++  ! https://sites.google.com/site/afcwrf/home/a/arwpost/ept
++  !
++
++MODULE module_calc_ept  !EPT
++
++CONTAINS
++  SUBROUTINE calc_ept(SCR, cname, cdesc, cunits)
++
++    USE module_model_basics
++
++    use ept_bolton80
++
++
++    !Arguments
++    real, allocatable, dimension(:,:,:) :: SCR
++    character (len=128) :: cname, cdesc, cunits
++
++    !Local
++    real, dimension(&
++         &west_east_dim,south_north_dim,bottom_top_dim) :: tmp
++
++
++    do k=1,bottom_top_dim
++       do j=1,south_north_dim
++          do i=1,west_east_dim
++
++             PhPa=PRES(i,j,k)/100.
++             r=QV(i,j,k)*1000.0
++             call ept_B80(SCR(i,j,k), TK(i,j,k), PhPa, r)
++
++          enddo !i
++       enddo !j
++    enddo !k
++
++    cname    = "ept"
++    cdesc    = "Equivalent Potential Temperature"
++    cunits   = "K"
++
++  END SUBROUTINE calc_ept
++
++END MODULE module_calc_ept
+diff -uprN src/process_domain_module.F90 src.new/process_domain_module.F90
+--- src/process_domain_module.F90	2016-12-21 22:29:43.474262507 +0000
++++ src.new/process_domain_module.F90	2016-12-21 23:06:22.744498394 +0000
+@@ -122,6 +122,7 @@ MODULE process_domain_module
+       rec = 0
+       frames_in_outfile = frames_per_outfile
+ 
++      call rain_rate_arrays
+ 
+       all_files : DO time=0,n_times
+    
+@@ -149,7 +150,7 @@ MODULE process_domain_module
+ 
+          frames_in_outfile = frames_in_outfile + 1
+ 
+-         CALL get_fields(temp_date)
++         CALL get_fields(temp_date, time)!CALL get_fields(temp_date)
+ 
+          IF (run_out_of_files) EXIT all_files
+    
+@@ -202,7 +203,7 @@ MODULE process_domain_module
+    ! Name: get_fields
+    ! Purpose: Read all fields in input file and process required output fields
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-   SUBROUTINE get_fields (valid_date)
++   SUBROUTINE get_fields (valid_date,tm) !get_fields (valid_date)
+ 
+       USE module_get_file_names
+       USE module_basic_arrays
+@@ -226,7 +227,8 @@ MODULE process_domain_module
+       character (len=20)                 :: dummy, dummy2
+       integer                            :: is_there
+       integer                            :: good_to_go, file_time
+-
++      integer,intent(in),optional        :: tm
++      
+ 
+       ! Initialize the input module to read static input data for this domain
+       CALL mprintf(.true.,STDOUT, ' ')
+@@ -342,6 +344,56 @@ MODULE process_domain_module
+               
+             ENDIF
+ 
++            is_there = INDEX(plot_these_fields,'RAINRNC')
++            RAIN_RATE_NC: if(trim(cname)=='RAINNC' .and. is_there /= 0)then
++               IF (ALLOCATED(SCR)) DEALLOCATE(SCR)
++               ALLOCATE(SCR(domain_end(1),domain_end(2),domain_end(3)))
++
++               RAINNC_NOW=real_array
++               SCR = RAINNC_NOW - RAINNC_OLD !real_array
++
++               if(tm == 0)then
++                  SCR = 0.0
++               endif
++
++               cname='RAINRNC'
++               cdesc='RAIN RATE NON-CONV'
++               cunits='mm per output interval'
++               CALL interp( SCR, domain_end(1), domain_end(2), domain_end(3), &
++                    data_out, nxout, nyout, nzout, &
++                    vert_array, interp_levels, number_of_zlevs,cname)
++
++               ! Write the fields we want out to the .dat file, also keeps a list of what is written out
++               CALL write_dat (data_out, nxout, nyout, nzout, cname, cdesc, cunits)
++
++               RAINNC_OLD=RAINNC_NOW
++            endif RAIN_RATE_NC
++
++            is_there = INDEX(plot_these_fields,'RAINRC')
++            RAIN_RATE_C: if(trim(cname)=='RAINC' .and. is_there /= 0)then
++               IF (ALLOCATED(SCR)) DEALLOCATE(SCR)
++               ALLOCATE(SCR(domain_end(1),domain_end(2),domain_end(3)))
++
++               RAINC_NOW=real_array
++               SCR = RAINC_NOW - RAINC_OLD !real_array
++
++               if(tm == 0)then
++                  !                SCR = 0.0
++               endif
++
++               cname='RAINRC'
++               cdesc='RAIN RATE CONV'
++               cunits='mm per output interval'
++               CALL interp( SCR, domain_end(1), domain_end(2), domain_end(3), &
++                    data_out, nxout, nyout, nzout, &
++                    vert_array, interp_levels, number_of_zlevs,cname)
++
++               ! Write the fields we want out to the .dat file, also keeps a list of what is written out
++               CALL write_dat (data_out, nxout, nyout, nzout, cname, cdesc, cunits)
++
++               RAINC_OLD=RAINC_NOW
++            endif RAIN_RATE_C
++            
+         ENDIF    !! end "istatus==0"
+ 
+       END DO process_all_fields
