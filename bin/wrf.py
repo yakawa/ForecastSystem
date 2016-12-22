@@ -27,7 +27,7 @@ TEMPLATEDIR = HOME + '/ForecastSystem/template'
 SSTDIR = HOME + '/WRF/DATA/SST/{}/'
 GFSDIR = HOME + '/WRF/DATA/GFS/{}/'
 OUTPUTDIR = HOME + '/WRF/DATA/output/{}/'
-RUN_HOUR = 3
+RUN_HOUR = 84
 
 def init_slack():
     if not os.path.exists(HOME + '/.slack_hook'):
