@@ -1,0 +1,104 @@
+diff -uprN src/Makefile src.new/Makefile
+--- src/Makefile	2016-12-24 09:04:35.000000000 +0900
++++ src.new/Makefile	2016-12-24 09:05:46.000000000 +0900
+@@ -1,7 +1,7 @@
+ 
+ include ../configure.arwp
+ 
+-OBJS = module_model_basics.o constants_module.o gridinfo_module.o ARWpost.o input_module.o output_module.o module_map_utils.o misc_definitions_module.o module_date_pack.o module_debug.o process_domain_module.o module_get_file_names.o module_interp.o module_basic_arrays.o module_diagnostics.o module_arrays.o module_pressure.o module_calc_height.o module_calc_pressure.o module_calc_theta.o module_calc_tk.o module_calc_tc.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o module_calc_myrh.o module_calc_ept.o module_ept_bolton80.o
++OBJS = module_model_basics.o constants_module.o gridinfo_module.o ARWpost.o input_module.o output_module.o module_map_utils.o misc_definitions_module.o module_date_pack.o module_debug.o process_domain_module.o module_get_file_names.o module_interp.o module_basic_arrays.o module_diagnostics.o module_arrays.o module_pressure.o module_calc_height.o module_calc_pressure.o module_calc_theta.o module_calc_tk.o module_calc_tc.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o module_calc_myrh.o module_calc_ept.o module_ept_bolton80.o module_calc_tpw.o
+ 
+ 
+ wrong: 
+@@ -52,7 +52,7 @@ ARWpost.o: gridinfo_module.o module_debu
+ 
+ module_basic_arrays.o: gridinfo_module.o module_arrays.o module_pressure.o module_interp.o constants_module.o
+ 
+-module_diagnostics.o: gridinfo_module.o output_module.o module_arrays.o module_interp.o module_pressure.o constants_module.o module_calc_height.o module_calc_pressure.o module_calc_tk.o module_calc_tc.o module_calc_theta.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o module_calc_myrh.o module_calc_ept.o
++module_diagnostics.o: gridinfo_module.o output_module.o module_arrays.o module_interp.o module_pressure.o constants_module.o module_calc_height.o module_calc_pressure.o module_calc_tk.o module_calc_tc.o module_calc_theta.o module_calc_td.o module_calc_td2.o module_calc_rh.o module_calc_rh2.o module_calc_uvmet.o module_calc_slp.o module_calc_dbz.o module_calc_cape.o module_calc_wdir.o module_calc_wspd.o module_calc_clfr.o module_calc_myrh.o module_calc_ept.o module_calc_tpw.o
+ 
+ module_calc_cape.o: module_model_basics.o constants_module.o
+ module_calc_dbz.o: module_model_basics.o constants_module.o
+@@ -71,6 +71,7 @@ module_calc_wdir.o: module_model_basics.
+ module_calc_wspd.o: module_model_basics.o
+ module_calc_clfr.o: module_model_basics.o
+ module_calc_ept.o: module_model_basics.o constants_module.o module_ept_bolton80.o
++module_calc_tpw.o: module_model_basics.o constants_module.o
+ 
+ clean:
+ 	rm -f $(OBJS) *.mod
+diff -uprN src/module_calc_tpw.f90 src.new/module_calc_tpw.f90
+--- src/module_calc_tpw.f90	1970-01-01 09:00:00.000000000 +0900
++++ src.new/module_calc_tpw.f90	2016-12-24 09:15:29.000000000 +0900
+@@ -0,0 +1,36 @@
++  !! TPW
++MODULE module_calc_tpw
++
++CONTAINS
++  SUBROUTINE calc_tpw(SCR, cname, cdesc, cunits)
++
++    USE module_model_basics
++    USE constants_module
++
++    !Arguments
++    integer                                                         :: i, j, k
++    real, allocatable, dimension(:,:,:)                             :: SCR
++    character (len=128)                                             :: cname, cdesc, cunits
++    real, dimension(west_east_dim, south_north_dim,bottom_top_dim)  :: ght, qvp
++    real, dimension(west_east_dim, south_north_dim)                 :: tpw
++    real, dimension(west_east_dim, south_north_dim)                 :: pw, t_hgt, t_q
++    
++    qvp = QV
++    ght = GEOPT / G
++
++    tpw = 0
++    DO k = 1, bottom_top_dim - 1
++       t_q = qvp(:, :, k + 1) + qvp(:, :, k)
++       t_hgt = ght(:, :, k + 1) - ght(:, :, k)
++       pw = t_q * t_hgt / 2.
++       tpw = tpw + pw
++             
++    END DO
++    
++    SCR(:,:,1) = tpw(:,:)
++    cname = "tpw"
++    cdesc = "Total Precipitable Water"
++    cunits = "mm"
++
++  END SUBROUTINE calc_tpw
++END MODULE module_calc_tpw
+diff -uprN src/module_diagnostics.f90 src.new/module_diagnostics.f90
+--- src/module_diagnostics.f90	2016-12-24 09:04:35.000000000 +0900
++++ src.new/module_diagnostics.f90	2016-12-24 09:07:40.000000000 +0900
+@@ -28,6 +28,7 @@ MODULE module_diagnostics
+   USE module_calc_clfr
+   USE module_calc_myrh
+   USE module_calc_ept
++  USE module_calc_tpw
+   
+   CONTAINS
+ 
+@@ -614,7 +615,22 @@ MODULE module_diagnostics
+           END IF
+         END IF
+ 
+-
++!!! TPW
++        IF ( INDEX(plot_these_fields,",tpw,") /= 0 ) THEN
++           good_to_go = 0
++           IF ( .not. have_QV )   CALL get_keep_array ( local_time, good_to_go, "QV" )
++           IF ( good_to_go == 0 .AND. have_QV .AND. have_GEOPT ) THEN
++              IF ( ALLOCATED(SCR) ) DEALLOCATE(SCR)
++              ALLOCATE(SCR(west_east_dim,south_north_dim,1))
++              CALL calc_tpw(SCR, cname, cdesc, cunits)
++              CALL interp (SCR, west_east_dim, south_north_dim, 1, &
++                   data_out, nxout, nyout, nzout, &
++                   vert_array, interp_levels, number_of_zlevs,cname)
++              CALL write_dat (data_out, nxout, nyout, nzout, cname, cdesc, cunits)
++              DEALLOCATE(SCR)
++           END IF
++        END IF
++        
+        IF ( ALLOCATED(SCR) ) DEALLOCATE(SCR)
+ 
+    END SUBROUTINE process_diagnostics

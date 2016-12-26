@@ -3,7 +3,7 @@
 #include <math.h>
 #include "constants.h"
 
-#define TOTAL_HEIGHT (11 + 1 + 11 + 11 + 11 + 1 + 1 + 1 + 1 + 1 + 11 + 11 + 11 + 11 + 11 + 1 + 11 + 1 + 1 + 1 + 1 + 11 + 11 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
+#define TOTAL_HEIGHT (12 + 1 + 12 + 12 + 12 + 1 + 1 + 1 + 1 + 1 + 12 + 12 + 12 + 12 + 12 + 1 + 12 + 1 + 1 + 1 + 1 + 12 + 12 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
 #define TOTAL_SIZE_1HOUR (NX * NY * TOTAL_HEIGHT)
 
 void _swapbytes(void *pv, size_t n)
@@ -53,18 +53,21 @@ float calc_ept(float p, float t, float td)
 void calc_ssi(float* lowerT, float* lowerTd, float* upperT, float lowerPress, float upperPress, float* ssi)
 {
   int i, j, p;
-  #pragma omp for
+
   for(j = 0; j < NY; j++){
     for(i = 0; i < NX; i++){
       float lowerEPT;
       float t1, t2, t3;
+      int loop;
       
       p = j * NX + i;
 
+      //printf("lowerPress-> %f, T -> %f, Td -> %f\n", lowerPress, lowerT[p], lowerTd[p]);
       lowerEPT = calc_ept(lowerPress, lowerT[p], lowerTd[p]);
 
-      t1 = -50;
-      t2 = 50;
+      t1 = -80;
+      t2 = 80;
+      loop = 0;
 
       while(1){
 	float ept1, ept2, er1, er2;
@@ -72,11 +75,16 @@ void calc_ssi(float* lowerT, float* lowerTd, float* upperT, float lowerPress, fl
 	ept1 = calc_ept(upperPress, t1, t1);
 	er1 = ept1 - lowerEPT;
 
+	//printf("ept1->%f, lower->%f\n", ept1, lowerEPT);
 	if(isnan(ept1)){
 	  t2 = ept1;
 	  break;
 	}
-	if(er1 * er1 < 0.001){
+	if(loop == 10000){
+	  t2 = ERROR;
+	  break;
+	}
+	if(abs(er1) < 0.001){
 	  break;
 	}
 	ept2 = calc_ept(upperPress, t2, t2);
@@ -87,13 +95,16 @@ void calc_ssi(float* lowerT, float* lowerTd, float* upperT, float lowerPress, fl
 	  t3 = t1;
 	  t1 = t2;
 	  t2 = t2 + (t2 - t3) / 2.;
-	}		  
+	}
+	loop += 1;
       }
+      
       if(isnan(t2)){
 	ssi[p] = ERROR;
       } else {
 	ssi[p] = upperT[p] - t2;
       }
+      
     }
   }
 }
@@ -110,6 +121,11 @@ int main(int argc, char* argv[])
   SSI = (float*)malloc(sizeof(float) * NX * NY);
   SSI850_700 = (float*)malloc(sizeof(float) * NX * NY);
   SSI925_850 = (float*)malloc(sizeof(float) * NX * NY);
+
+  if(vals == NULL || SSI == NULL || SSI850_700 == NULL || SSI925_850 == NULL){
+    fprintf(stderr, "Memory Allocation Error\n");
+    return -5;
+  }
   
   fp = fopen(argv[1], "rb");
   if(fp == NULL){
@@ -118,6 +134,7 @@ int main(int argc, char* argv[])
   }
   size = fread(vals, sizeof(float), TOTAL_SIZE_1HOUR * TMAX, fp);
   if(size != TOTAL_SIZE_1HOUR * TMAX){
+    printf("%d (%d)\n", size, TOTAL_SIZE_1HOUR * TMAX);
     return -2;
   }
   fclose(fp);
@@ -126,14 +143,15 @@ int main(int argc, char* argv[])
   fpw = fopen(argv[2], "wb");
 
   for(hour = 0; hour < TMAX; hour++){
+    printf("T = %d\n", hour);
     int c;
-    int posT925 = (NX * NY) * 72 + (NX * NY) * 1;
-    int posT850 = (NX * NY) * 72 + (NX * NY) * 4;
-    int posT700 = (NX * NY) * 72 + (NX * NY) * 5;
-    int posT500 = (NX * NY) * 72 + (NX * NY) * 7;
-    int posTd925 = (NX * NY) * 94 + (NX * NY) * 1;
-    int posTd850 = (NX * NY) * 94 + (NX * NY) * 4;
-    int posTd700 = (NX * NY) * 94 + (NX * NY) * 5;
+    int posT925 = (NX * NY) * 78 + (NX * NY) * 1;
+    int posT850 = (NX * NY) * 78 + (NX * NY) * 4;
+    int posT700 = (NX * NY) * 78 + (NX * NY) * 6;
+    int posT500 = (NX * NY) * 78 + (NX * NY) * 8;
+    int posTd925 = (NX * NY) * 102 + (NX * NY) * 1;
+    int posTd850 = (NX * NY) * 102 + (NX * NY) * 4;
+    int posTd700 = (NX * NY) * 102 + (NX * NY) * 6;
     float v;
 
     c = hour * TOTAL_HEIGHT * NY * NX;
@@ -141,7 +159,7 @@ int main(int argc, char* argv[])
     calc_ssi(&vals[posT850 + c], &vals[posTd850 + c], &vals[posT500 + c], 850., 500., SSI);
     calc_ssi(&vals[posT850 + c], &vals[posTd850 + c], &vals[posT700 + c], 850., 700., SSI850_700);
     calc_ssi(&vals[posT925 + c], &vals[posTd925 + c], &vals[posT850 + c], 925., 850., SSI925_850);
-    v = vals[posT850 + c];
+
     fwrite(&vals[c], sizeof(float), TOTAL_SIZE_1HOUR, fpw);
     fwrite(SSI, sizeof(float), NX * NY, fpw);
     fwrite(SSI850_700, sizeof(float), NX * NY, fpw);

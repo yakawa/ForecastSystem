@@ -81,7 +81,7 @@ def make_que(init):
     if not os.path.isdir(dir):
         os.makedirs(dir)
 
-    for ft in range(0, 84, 3):
+    for ft in range(0, 87, 3):
         download_que.put(ft)
 
 

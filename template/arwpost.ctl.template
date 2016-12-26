@@ -1,0 +1,173 @@
+dset ^wrf_output.dat
+undef 1.e30
+title  OUTPUT FROM WRF V3.8.1 MODEL
+pdef  299 269 lcc  35.428  137.302  150.000  135.000  35.42800  35.42800  137.30200  10000.000  10000.000
+xdef  868 linear  117.75154   0.04504504
+ydef  572 linear   22.06684   0.04504504
+zdef   12 levels  
+1000.00000
+ 925.00000
+ 900.00000
+ 850.00000
+ 800.00000
+ 700.00000
+ 600.00000
+ 500.00000
+ 400.00000
+ 300.00000
+ 200.00000
+ 100.00000
+tdef   85 linear {{ init_str }}    60MN      
+VARS   35
+W             12  0  z-wind component (m s-1)
+T2             1  0  TEMP at 2 M (K)
+QVAPOR        12  0  Water vapor mixing ratio (kg kg-1)
+QCLOUD        12  0  Cloud water mixing ratio (kg kg-1)
+QRAIN         12  0  Rain water mixing ratio (kg kg-1)
+RAINC          1  0  ACCUMULATED TOTAL CUMULUS PRECIPITATION (mm)
+RAINRC         1  0  RAIN RATE CONV (mm per output interval)
+RAINNC         1  0  ACCUMULATED TOTAL GRID SCALE PRECIPITATION (mm)
+RAINRNC        1  0  RAIN RATE NON-CONV (mm per output interval)
+SWDOWN         1  0  DOWNWARD SHORT WAVE FLUX AT GROUND SURFACE (W m-2)
+ept           12  0  Equivalent Potential Temperature (K)
+geopt         12  0  Geopotential (m2/s2)
+tc            12  0  Temperature (C)
+theta         12  0  Potential Temperature (K)
+td            12  0  Dewpoint Temperature (C)
+td2            1  0  Dewpoint Temperature at 2m (C)
+rh            12  0  Relative Humidity (%)
+clflo          1  0  Low Cloud Fraction (%)
+clfmi          1  0  Mid Cloud Fraction (%)
+clfhi          1  0  High Cloud Fraction (%)
+rh2            1  0  Relative Humidity at 2m (%)
+umet          12  0  Rotated wind component (m s-1)
+vmet          12  0  Rotated wind component (m s-1)
+u10m           1  0  Rotated wind component (m s-1)
+v10m           1  0  Rotated wind component (m s-1)
+slp            1  0  Sea Levelp Pressure (hPa)
+max_dbz        1  0  Max Reflectivity (-)
+mcape          1  0  MCAPE (J/kg)
+mcin           1  0  MCIN (J/kg)
+lcl            1  0  LCL (meters AGL)
+lfc            1  0  LFC (meters AGL)
+tpw            1  0  Total Precipitable Water (mm)
+SSI            1  0  SSI (C)
+SSI700_500     1  0  SSI 700 - 500 hPa (C)
+SSI925_850     1  0  SSI 925 - 850 hPa (C)
+ENDVARS
+@ global String comment TITLE =  OUTPUT FROM WRF V3.8.1 MODEL
+@ global String comment START_DATE = {{ START_DATE }}
+@ global String comment SIMULATION_START_DATE = {{ START_DATE }}
+@ global String comment WEST-EAST_GRID_DIMENSION =   300
+@ global String comment SOUTH-NORTH_GRID_DIMENSION =   270
+@ global String comment BOTTOM-TOP_GRID_DIMENSION =    30
+@ global String comment DX =     10000.00
+@ global String comment DY =     10000.00
+@ global String comment SKEBS_ON =     0
+@ global String comment SPEC_BDY_FINAL_MU =     1
+@ global String comment USE_Q_DIABATIC =     0
+@ global String comment GRIDTYPE = C
+@ global String comment DIFF_OPT =     1
+@ global String comment KM_OPT =     4
+@ global String comment DAMP_OPT =     0
+@ global String comment DAMPCOEF =         0.20
+@ global String comment KHDIF =         0.00
+@ global String comment KVDIF =         0.00
+@ global String comment MP_PHYSICS =     3
+@ global String comment RA_LW_PHYSICS =     1
+@ global String comment RA_SW_PHYSICS =     1
+@ global String comment SF_SFCLAY_PHYSICS =     1
+@ global String comment SF_SURFACE_PHYSICS =     1
+@ global String comment BL_PBL_PHYSICS =     1
+@ global String comment CU_PHYSICS =     1
+@ global String comment SF_LAKE_PHYSICS =     0
+@ global String comment SURFACE_INPUT_SOURCE =     3
+@ global String comment SST_UPDATE =     0
+@ global String comment GRID_FDDA =     0
+@ global String comment GFDDA_INTERVAL_M =     0
+@ global String comment GFDDA_END_H =     0
+@ global String comment GRID_SFDDA =     0
+@ global String comment SGFDDA_INTERVAL_M =     0
+@ global String comment SGFDDA_END_H =     0
+@ global String comment HYPSOMETRIC_OPT =     2
+@ global String comment USE_THETA_M =     0
+@ global String comment SF_URBAN_PHYSICS =     0
+@ global String comment SHCU_PHYSICS =     0
+@ global String comment MFSHCONV =     0
+@ global String comment FEEDBACK =     1
+@ global String comment SMOOTH_OPTION =     2
+@ global String comment SWRAD_SCAT =         1.00
+@ global String comment W_DAMPING =     0
+@ global String comment DT =        60.00
+@ global String comment RADT =        30.00
+@ global String comment BLDT =         0.00
+@ global String comment CUDT =         5.00
+@ global String comment AER_OPT =     0
+@ global String comment SWINT_OPT =     0
+@ global String comment AER_TYPE =     1
+@ global String comment AER_AOD550_OPT =     1
+@ global String comment AER_ANGEXP_OPT =     1
+@ global String comment AER_SSA_OPT =     1
+@ global String comment AER_ASY_OPT =     1
+@ global String comment AER_AOD550_VAL =         0.12
+@ global String comment AER_ANGEXP_VAL =         1.30
+@ global String comment AER_SSA_VAL =         0.00
+@ global String comment AER_ASY_VAL =         0.00
+@ global String comment MOIST_ADV_OPT =     1
+@ global String comment SCALAR_ADV_OPT =     1
+@ global String comment TKE_ADV_OPT =     1
+@ global String comment DIFF_6TH_OPT =     0
+@ global String comment DIFF_6TH_FACTOR =         0.12
+@ global String comment OBS_NUDGE_OPT =     0
+@ global String comment BUCKET_MM =        -1.00
+@ global String comment BUCKET_J =        -1.00
+@ global String comment PREC_ACC_DT =         0.00
+@ global String comment SF_OCEAN_PHYSICS =     0
+@ global String comment ISFTCFLX =     0
+@ global String comment ISHALLOW =     0
+@ global String comment ISFFLX =     1
+@ global String comment ICLOUD =     1
+@ global String comment ICLOUD_CU =     0
+@ global String comment TRACER_PBLMIX =     1
+@ global String comment SCALAR_PBLMIX =     0
+@ global String comment YSU_TOPDOWN_PBLMIX =     0
+@ global String comment GRAV_SETTLING =     0
+@ global String comment DFI_OPT =     0
+@ global String comment SIMULATION_INITIALIZATION_TYPE = REAL-DATA CASE
+@ global String comment WEST-EAST_PATCH_START_UNSTAG =     1
+@ global String comment WEST-EAST_PATCH_END_UNSTAG =   299
+@ global String comment WEST-EAST_PATCH_START_STAG =     1
+@ global String comment WEST-EAST_PATCH_END_STAG =   300
+@ global String comment SOUTH-NORTH_PATCH_START_UNSTAG =     1
+@ global String comment SOUTH-NORTH_PATCH_END_UNSTAG =   269
+@ global String comment SOUTH-NORTH_PATCH_START_STAG =     1
+@ global String comment SOUTH-NORTH_PATCH_END_STAG =   270
+@ global String comment BOTTOM-TOP_PATCH_START_UNSTAG =     1
+@ global String comment BOTTOM-TOP_PATCH_END_UNSTAG =    29
+@ global String comment BOTTOM-TOP_PATCH_START_STAG =     1
+@ global String comment BOTTOM-TOP_PATCH_END_STAG =    30
+@ global String comment GRID_ID =     1
+@ global String comment PARENT_ID =     1
+@ global String comment I_PARENT_START =     1
+@ global String comment J_PARENT_START =     1
+@ global String comment PARENT_GRID_RATIO =     1
+@ global String comment CEN_LAT =        35.43
+@ global String comment CEN_LON =       137.30
+@ global String comment TRUELAT1 =        35.43
+@ global String comment TRUELAT2 =        35.43
+@ global String comment MOAD_CEN_LAT =        35.43
+@ global String comment STAND_LON =       137.30
+@ global String comment POLE_LAT =        90.00
+@ global String comment POLE_LON =         0.00
+@ global String comment GMT =         0.00
+@ global String comment JULYR =  2016
+@ global String comment JULDAY =   361
+@ global String comment MAP_PROJ =     1
+@ global String comment MAP_PROJ_CHAR = Lambert Conformal
+@ global String comment MMINLU = MODIFIED_IGBP_MODIS_NOAH
+@ global String comment NUM_LAND_CAT =    21
+@ global String comment ISWATER =    17
+@ global String comment ISLAKE =    21
+@ global String comment ISICE =    15
+@ global String comment ISURBAN =    13
+@ global String comment ISOILWATER =    14

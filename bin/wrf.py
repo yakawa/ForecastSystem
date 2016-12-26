@@ -81,6 +81,13 @@ def cleanup():
             os.remove(WRFBASE + '/run/' + fp)
         if fp.startswith('wrfbdy_d'):
             os.remove(WRFBASE + '/run/' + fp)
+        if fp.startswith('auxhist3_'):
+            os.remove(WRFBASE + '/run/' + fp)
+        if fp.startswith('wrfrst_d'):
+            os.remove(WRFBASE + '/run/' + fp)
+        if fp.startswith('wrfout_d'):
+            os.remove(WRFBASE + '/run/' + fp)
+            
 
 def SST(init):
     os.chdir(WPSBASE)
@@ -114,9 +121,24 @@ def WRF():
     subprocess.check_call(['./real.exe',])
     subprocess.check_call(['./wrf.exe',])
                                            
-def PostProcess():
+def PostProcess(init):
     os.chdir(ARWpost)
     subprocess.check_call(['./ARWpost.exe'])
+    
+    inf = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element.dat'
+    outf1 = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output.dat'
+    outf2 = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/station.dat'
+    subprocess.check_call([HOME + '/ForecastSystem/bin/PostProcess', inf, outf1], shell=False)
+    os.unlink(inf)
+
+    subprocess.check_call([HOME + '/ForecastSystem/bin/pickup', outf1, HOME + '/ForecastSystem/etc/station.txt', outf2], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/saveDB.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3'], shell=False)
+    os.unlink(outf2)
+    os.unlink(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element.ctl')
+    
+def Guidance(init):
+    pass
+    
     
 def main(init):
     sst_init = (init - datetime.timedelta(hours=24)).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -156,41 +178,75 @@ def main(init):
     wps_sst_tmpl = env.get_template('namelist.wps.sst.template')
     wrf_i_tmpl = env.get_template('namelist.input.template')
     post_tmpl = env.get_template('namelist.ARWpost.template')
+    ctl_tmpl = env.get_template('arwpost.ctl.template')
 
     logger.info('SSTの処理を実行しています。')
     with open(WPSBASE + '/namelist.wps', 'w') as fn:
         fn.write(wps_sst_tmpl.render({'start_time':start_time, 'end_time':end_time, 'sst_time': sst_time, 'geog': geog, 'run_hour': run_hour}))
-    SST(sst_init)
+    try:
+        SST(sst_init)
+    except:
+        logger.error('SSTの処理に失敗しました。')
+        sys.exit(-2)
 
     logger.info('GFSの処理を実行しています。')
     with open(WPSBASE + '/namelist.wps', 'w') as fn:
         fn.write(wps_tmpl.render({'start_time':start_time, 'end_time':end_time, 'sst_time': sst_fn, 'geog': geog, 'run_hour': run_hour}))
-    GFS(init)
+    try:
+        GFS(init)
+    except:
+        logger.error('GFSの処理に失敗しました。')
+        sys.exit(-2)
 
 
     logger.info('PreProcessを実行します。')
     with open(WRFBASE + '/run/namelist.input', 'w') as fn:
         fn.write(wrf_i_tmpl.render({'init':init, 'endt': init + datetime.timedelta(hours=run_hour), 'run_hour': run_hour }))
 
-    os.chdir(WPSBASE)
-    subprocess.check_call(['./metgrid.exe',])
-
+    try:
+        os.chdir(WPSBASE)
+        subprocess.check_call(['./metgrid.exe',])
+    except:
+        logger.error('PreProcessの実行に失敗しました。')
+        sys.exit(-2)
+        
     logger.info('WRFを実行しています。')
-    WRF()
+    try:
+        WRF()
+    except:
+        logger.error('WRFの実行に失敗しました。')
+        sys.exit(-3)
     logger.info('WRFの実行が完了しました。')
 
     logger.info('PostProcessを実行しています。')
-    if not os.path.isdir(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000'))):
-        os.makedirs(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')))
-    os.rename(WRFBASE + '/run/wrfout_d01_' + start_time, OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output.nc')
-                       
-    of_nc = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output.nc'
-    out = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element'
+    try:
+        if not os.path.isdir(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000'))):
+            os.makedirs(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')))
 
-    with open(ARWpost + '/namelist.ARWpost', 'w') as fn:
-        fn.write(post_tmpl.render({'start_time':start_time, 'end_time':end_time, 'of_nc': of_nc, 'out': out }))
-    PostProcess()
+        of_nc = WRFBASE + '/run/wrfout_d01_' + start_time 
+        out = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element'
+
+        with open(ARWpost + '/namelist.ARWpost', 'w') as fn:
+            fn.write(post_tmpl.render({'start_time':start_time, 'end_time':end_time, 'of_nc': of_nc, 'out': out }))
+        with open(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output.ctl', 'w') as fn:
+            fn.write(ctl_tmpl.render({'init_str':init.strftime('%HZ%d%b%Y'), 'START_DATE': init.strftime('%Y-%m-%d_%H:%M:%S') }))
+            
+        PostProcess(init)
+    except:
+        logger.error('PostProcessの実行に終了しました。')
+        sys.exit(-4)
     logger.info('PostProcessを終了しました。')
+
+    logger.info('Guidanceの作成を開始しました。')
+    try:
+        Guidance(init)
+    except:
+        logger.error('Guidanceの作成に失敗しました。')
+        sys.exit(-5)
+    logger.info('Guidanceの作成を完了しました。')
+    logger.info('{}の計算を完了しました。'.format(init.strftime('%Y/%m/%d %H:00:00')))
+
+    
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='WRF Executor')
