@@ -128,11 +128,11 @@ def PostProcess(init):
     inf = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element.dat'
     outf1 = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output.dat'
     outf2 = OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/station.dat'
-    subprocess.check_call([HOME + '/ForecastSystem/bin/PostProcess', inf, outf1], shell=False)
+    subprocess.check_call([HOME + '/ForecastSystem/bin/wrf_PostProcess', inf, outf1], shell=False)
     os.unlink(inf)
 
-    subprocess.check_call([HOME + '/ForecastSystem/bin/pickup', outf1, HOME + '/ForecastSystem/etc/station.txt', outf2], shell=False)
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/saveDB.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3'], shell=False)
+    subprocess.check_call([HOME + '/ForecastSystem/bin/wrf_pickup', outf1, HOME + '/ForecastSystem/etc/station.txt', outf2], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/wrf_saveDB.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3'], shell=False)
     os.unlink(outf2)
     os.unlink(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element.ctl')
     
