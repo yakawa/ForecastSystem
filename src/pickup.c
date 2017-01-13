@@ -9,81 +9,68 @@
 #define TOTAL_HEIGHT (12 + 1 + 12 + 12 + 12 + 1 + 1 + 1 + 1 + 1 + 12 + 12 + 12 + 12 + 12 + 1 + 12 + 1 + 1 + 1 + 1 + 12 + 12 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
 #define TOTAL_SIZE_1HOUR (NX * NY * TOTAL_HEIGHT)
 
-float calc_distance(float lat1, float lon1, float lat2, float lon2)
+void ll2xy(float grdlat, float grdlon, int *grdi, int *grdj)
 {
-  double a=6378136.0;
-  double e2=0.006694470;
+  double pi, pi2, pi4, d2r, r2d, radius, omega4;
+  double gcon,ogcon,H,deg,cn1,cn2,cn3,cn4,rih,xih,yih,rrih,check;
+  double alnfix,alon,x,y,windrot;
+  double latref,lonref,iref,jref,stdlt1,stdlt2,stdlon,delx,dely;
 
-  double rad;
-  double N1, x1, y1, z1;
-  double N2, x2, y2, z2;
-  double h1, h2;
-  double r, wr;
-  
-  h1 = h2 = 0.0;
-  
-  rad = PI / 180.0;
+  pi = M_PI;
+  pi2 = pi/2.0;
+  pi4 = pi/4.0;
+  d2r = pi/180.0;
+  r2d = 180.0/pi;
+  radius = 6371229.0;
+  omega4 = 4.0*pi/86400.0;
 
-  if(lon1 < 0) {
-    lon1 = 360.0 + lon1;
-  }
-  lat1 = lat1 * rad;
-  lon1 = lon1 * rad;
+  latref = CLAT;
+  lonref = CLON;
+  iref   = CX;
+  jref   = CY;
+  stdlt1 = CLAT;
+  stdlt2 = CLAT;
+  stdlon = CLON;
+  delx   = DX;
+  dely   = DY;
 
-  if(lon2 < 0){
-    lon2 = 360.0 + lon2;
-  }
-  lat2 = lat2 * rad;
-  lon2 = lon2 * rad;
+  gcon = sin(d2r*(fabs(stdlt1)));
 
-  N1 = a * (sqrt(1.0 - e2 * sin(lat1) * sin(lat1)));
-  x1 = (N1 + h1) * cos(lat1) * cos(lon1);  
-  y1 = (N1 + h1) * cos(lat1) * sin(lon1);
-  z1 = (N1 * (1.0 - e2) + h1) * sin(lat1)+ h1;
+  ogcon = 1.0/gcon;
+  H = fabs(stdlt1)/(stdlt1);        /* 1 for NHem, -1 for SHem */
+  cn1 = sin((90.0-fabs(stdlt1))*d2r);
+  cn2 = radius*cn1*ogcon;
+  deg = (90.0-fabs(stdlt1))*d2r*0.5;
+  cn3 = tan(deg);
+  deg = (90.0-fabs(latref))*d2r*0.5;
+  cn4 = tan(deg);
+  rih = cn2*pow((cn4/cn3),gcon);
 
-  N2 = a * (sqrt(1.0 - e2 * sin(lat2) * sin(lat2)));
-  x2 = (N2 + h2) * cos(lat2) * cos(lon2);
-  y2 = (N2 + h2) * cos(lat2) * sin(lon2);
-  z2 = (N2 * (1.0 - e2) + h2) * sin(lat2)+ h2;  
+  xih =  rih*sin((lonref-stdlon)*d2r*gcon);
+  yih = -rih*cos((lonref-stdlon)*d2r*gcon)*H;
+  deg = (90.0-grdlat*H)*0.5*d2r;
+  cn4 = tan(deg);
+  rrih = cn2*pow((cn4/cn3),gcon);
+  check  = 180.0-stdlon;
+  alnfix = stdlon+check;
+  alon   = grdlon+check;
 
-  r = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2));
-  wr=asin(r / 2 / a);
-  return r;
-  return a * 2 * wr;
-}
+  while (alon<  0.0) alon = alon+360.0;
+  while (alon>360.0) alon = alon-360.0;
 
-void ll2xy(float lat, float lon, int *x, int *y)
-{
-  int dx, dy;
-
-  double _lat, _lon;
-  _lat = lat + CLAT;
-  _lon = lon + CLON;
-
-  dx = (int)floor(calc_distance(_lat, lon, _lat, CLON) / DX);
-  dy = (int)floor(calc_distance(lat, _lon, CLAT, _lon) / DY);
-
-  if(lon > CLON){
-    *x = CX + dx;
-  } else {
-    *x = CX - dx;
-  }
-
-  if(lat > CLAT){
-    *y = CY + dy;
-  } else {
-    *y = CY - dy;
-  }
-
-  if(*x > NX || *y > NY || *x < 0 || *y < 0){
-    *x = -1;
-    *y = -1;
-  }
+  deg = (alon-alnfix)*gcon*d2r;
+  x =  rrih*sin(deg);
+  y = -rrih*cos(deg)*H;
+  *grdi = iref + (x-xih)/delx;
+  *grdj = jref + (y-yih)/dely;
+  windrot=gcon*(stdlon-grdlon)*d2r;
 }
 
 float pickup(float *vals, int x, int y)
 {
   float v, v1, v2, v3, v4, v5, v6, v7, v8;
+  y = y - 1;
+  x = x - 1;
   v  = vals[(y    ) * NX + (x    )];
   v1 = vals[(y + 1) * NX + (x - 1)];
   v2 = vals[(y + 1) * NX + (x    )];
