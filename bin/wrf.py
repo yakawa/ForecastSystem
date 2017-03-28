@@ -137,7 +137,15 @@ def PostProcess(init):
     os.unlink(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element.ctl')
     
 def Guidance(init):
-    pass
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_make_db.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/etc/station.txt', HOME + '/ForecastSystem/db/fcst.sqlite3'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_temp.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_rh.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_wind.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_pop2.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_prec.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_wx.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
     
     
 def main(init):
@@ -155,6 +163,11 @@ def main(init):
         sys.exit(-1)
     logger.info('GFSの取得を完了しました。')
 
+    try:
+        subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/chart_gfs.py', init.strftime('%Y%m%d%H')], shell=False)
+    except:
+        logger.error('GFS Chartsの作成に失敗しました。')
+    
     logger.info('SSTの取得を開始します。')
     try:
         subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/getSST.py', sst_init.strftime('%Y%m%d%H')], shell=False)
@@ -233,9 +246,8 @@ def main(init):
             
         PostProcess(init)
     except:
-        logger.error('PostProcessの実行に終了しました。')
+        logger.error('PostProcessの実行に失敗しました。')
         sys.exit(-4)
-    logger.info('PostProcessを終了しました。')
 
     logger.info('Guidanceの作成を開始しました。')
     try:
@@ -244,6 +256,12 @@ def main(init):
         logger.error('Guidanceの作成に失敗しました。')
         sys.exit(-5)
     logger.info('Guidanceの作成を完了しました。')
+    try:
+        subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/chart_wrf.py', init.strftime('%Y%m%d%H')], shell=False)
+    except:
+        logger.error('WRF Chartsの作成に失敗しました。')
+        
+    logger.info('PostProcessを終了しました。')
     logger.info('{}の計算を完了しました。'.format(init.strftime('%Y/%m/%d %H:00:00')))
 
     
