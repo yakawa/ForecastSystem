@@ -14,4 +14,11 @@
 #define ERROR 1.e30
 
 
+#define GSM_NX 121
+#define GSM_NY 151
+#define GSM_WLON 120.
+#define GSM_WLAT 20.
+#define GSM_DX 0.25
+#define GSM_DY 0.20
+
 #endif
