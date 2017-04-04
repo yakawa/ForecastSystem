@@ -28,7 +28,7 @@ FILE4 = ('Z__C_RJTD_{year:04d}{month:02d}{day:02d}120000_GSM_GPV_Rjp_L-pall_FD08
 FILE5 = ('Z__C_RJTD_{year:04d}{month:02d}{day:02d}120000_GSM_GPV_Rjp_Lsurf_FD0315-0800_grib2.bin', '0315-0800_surf.bin')
 FILE6 = ('Z__C_RJTD_{year:04d}{month:02d}{day:02d}120000_GSM_GPV_Rjp_Lsurf_FD0803-1100_grib2.bin', '0803-1100_surf.bin')
 
-WGRIB2 = '/usr/local/bin/wgrib2'
+WGRIB2 = '/usr/bin/wgrib2'
 
 def init_slack():
     if not os.path.exists(HOME + '/.slack_hook'):
