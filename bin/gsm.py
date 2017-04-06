@@ -89,7 +89,7 @@ def PostProcess(init):
         subprocess.check_call([HOME + '/ForecastSystem/bin/gsm_pickup', HOME + '/ForecastSystem/tmp/0806-1100_pall.bin', HOME + '/ForecastSystem/etc/station.txt', HOME + '/ForecastSystem/tmp/0806-1100_pall.dat', "1", "2"], shell=False)
         subprocess.check_call([HOME + '/ForecastSystem/bin/gsm_pickup', HOME + '/ForecastSystem/tmp/0806-1100_add.bin', HOME + '/ForecastSystem/etc/station.txt', HOME + '/ForecastSystem/tmp/0806-1100_add.dat', "2", "2"], shell=False)
 
-    subprocess.check_call([HOME + '/ForecastSystem/bin/gsm_saveDB.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/gsm_fcst.db'], shell=False)
+    subprocess.check_call([HOME + '/ForecastSystem/bin/gsm_saveDB.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/gsm_fcst.sqlite3'], shell=False)
     
 def Guidance(init):
     pass

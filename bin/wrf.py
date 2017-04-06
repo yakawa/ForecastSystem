@@ -132,20 +132,20 @@ def PostProcess(init):
     os.unlink(inf)
 
     subprocess.check_call([HOME + '/ForecastSystem/bin/wrf_pickup', outf1, HOME + '/ForecastSystem/etc/station.txt', outf2], shell=False)
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/wrf_saveDB.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/wrf_saveDB.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/wrf_fcst.sqlite3'], shell=False)
     os.unlink(outf2)
     os.unlink(OUTPUTDIR.format(init.strftime('%Y%m%d_%H0000')) + '/wrf_output_element.ctl')
     
 def Guidance(init):
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_make_db.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/etc/station.txt', HOME + '/ForecastSystem/db/fcst.sqlite3'], shell=False)
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_temp.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_rh.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_wind.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_make_db.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/etc/station.txt', HOME + '/ForecastSystem/db/wrf_fcst.sqlite3'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_temp.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/wrf_fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_rh.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/wrf_fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_wind.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/wrf_fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
 
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_pop2.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_prec.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_pop2.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/wrf_fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_prec.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/wrf_fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
     
-    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_wx.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
+    subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/guidance_wrf_wx.py', init.strftime('%Y%m%d%H'), HOME + '/ForecastSystem/db/wrf_fcst.sqlite3', HOME + '/ForecastSystem/guidance/'], shell=False)
     
     
 def main(init):
