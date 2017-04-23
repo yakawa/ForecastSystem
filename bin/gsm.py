@@ -114,11 +114,6 @@ def main(init):
     except:
         logger.error('PostProcessの実行に失敗しました。')
         sys.exit(-4)
-    try:
-        subprocess.check_call(['/usr/bin/env', 'python3', HOME + '/ForecastSystem/bin/chart_gsm.py', init.strftime('%Y%m%d%H')], shell=False)
-    except:
-        logger.error('GSM Chartsの作成に失敗しました。')
-    
 
     logger.info('Guidanceの作成を開始しました。')
     try:
